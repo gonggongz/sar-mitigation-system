@@ -1,0 +1,32 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Foto laporan bencana
+    match /laporan-foto/{namaFile} {
+      // Foto bisa nunjukin korban/rumah/wajah warga, jadi cuma relawan terdaftar
+      // yang boleh buka (termasuk bikin link download-nya)
+      allow read: if isRelawan();
+
+      // Siapa aja boleh upload (warga gak perlu login buat lapor),
+      // tapi harus gambar & maksimal 5 MB, dan gak boleh nimpa file yang udah ada
+      allow create: if request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+
+      // Ubah/hapus foto cuma lewat Firebase Console / admin
+      allow update, delete: if false;
+    }
+
+    // Selain folder di atas, semuanya ditutup
+    match /{semuaFile=**} {
+      allow read, write: if false;
+    }
+
+    // Sama kayak isRelawan() di firestore.rules: login + terdaftar di koleksi "relawan"
+    function isRelawan() {
+      return request.auth != null
+        && firestore.exists(/databases/(default)/documents/relawan/$(request.auth.uid));
+    }
+  }
+}

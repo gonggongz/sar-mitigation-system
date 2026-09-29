@@ -1,0 +1,6 @@
+node_modules/
+*.local
+# Rahasia (GEMINI_API_KEY) — jangan pernah di-upload. Contohnya ada di .env.example
+.env
+.env.*
+!.env.example

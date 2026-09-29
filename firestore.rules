@@ -1,0 +1,81 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Daftar relawan resmi. ID dokumen = UID akun di Firebase Authentication.
+    // Diisi manual oleh administrator lewat Firebase Console.
+    match /relawan/{uid} {
+      // Tiap akun cuma boleh ngecek dokumennya sendiri (buat tampilan dashboard)
+      allow read: if request.auth != null && request.auth.uid == uid;
+      // Gak ada yang bisa nambah/ubah dari aplikasi — cuma admin lewat Console
+      allow write: if false;
+    }
+
+    match /titik_anomali/{titikId} {
+      // Peta & papan informasi publik, jadi semua orang boleh baca
+      allow read: if true;
+
+      // Relawan terdaftar boleh bikin laporan apa aja (tervalidasi, simulasi, dll).
+      // Selain itu (warga, atau akun login yang belum terdaftar) cuma boleh bikin
+      // laporan berstatus "laporan warga" dan gak boleh ngisi field penanganan.
+      allow create: if isRelawan() || laporanWargaValid();
+
+      // Update penanganan & korban cuma buat relawan terdaftar
+      allow update: if isRelawan();
+
+      // Hapus data cuma lewat Firebase Console / admin
+      allow delete: if false;
+    }
+
+    // Data privat per laporan (ID dokumen = ID titik_anomali):
+    // kontak pelapor (nomor HP) + riwayat verifikasi (email relawan).
+    // SENGAJA dipisah dari titik_anomali karena titik_anomali bisa dibaca publik.
+    match /titik_privat/{titikId} {
+      allow read, update: if isRelawan();
+
+      // Warga cuma boleh nitip kontak, sekali, barengan sama laporannya sendiri
+      // (ditulis dalam 1 batch, makanya pakai getAfter)
+      allow create: if isRelawan() || kontakWargaValid(titikId);
+
+      allow delete: if false;
+    }
+
+    function kontakWargaValid(titikId) {
+      let d = request.resource.data;
+      let laporan = getAfter(/databases/$(database)/documents/titik_anomali/$(titikId));
+      return d.keys().hasOnly(['nama_pelapor', 'hp_pelapor', 'waktu'])
+        && d.hp_pelapor is string && d.hp_pelapor.matches('[+]628[0-9]{7,12}')
+        && (d.nama_pelapor == null || (d.nama_pelapor is string && d.nama_pelapor.size() <= 60))
+        && laporan != null
+        && laporan.data.sumber_deteksi == 'laporan_warga_langsung'
+        // Laporannya harus baru dibuat di batch yang sama, biar orang gak bisa
+        // nempelin kontak palsu ke laporan orang lain belakangan
+        && !exists(/databases/$(database)/documents/titik_anomali/$(titikId));
+    }
+
+    // Login aja gak cukup: akun bisa dibikin sendiri lewat SDK/Google Sign-in,
+    // jadi yang dianggap relawan cuma akun yang ada di koleksi "relawan"
+    function isRelawan() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/relawan/$(request.auth.uid));
+    }
+
+    function laporanWargaValid() {
+      let d = request.resource.data;
+      return d.status == 'laporan_langsung'
+        && d.sumber_deteksi == 'laporan_warga_langsung'
+        && d.keys().hasOnly([
+          'kecamatan', 'desa', 'kabupaten', 'lat', 'lng', 'adm4', 'jenis_bencana', 'persentase_hp_mati',
+          'jumlah_jiwa_terdampak', 'catatan', 'foto_path', 'lokasi_presisi_gps',
+          'cara_lokasi', 'akurasi_lokasi_m',
+          'waktu', 'sumber_deteksi', 'status'
+        ])
+        // Cara titik lokasi ditentukan: GPS di lokasi, titik tengah desa, atau diketuk di peta
+        && (!('cara_lokasi' in d) || d.cara_lokasi in ['gps', 'desa', 'peta'])
+        // Foto cuma boleh nunjuk ke file di folder laporan-foto/ (bukan link luar)
+        && (!('foto_path' in d) || d.foto_path == null
+            || (d.foto_path is string && d.foto_path.matches('laporan-foto/[^/]+')));
+    }
+  }
+}
