@@ -1,5 +1,6 @@
 const { onRequest, onCall, HttpsError } = require("firebase-functions/https");
 const admin = require("firebase-admin");
+const crypto = require("crypto");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -122,9 +123,40 @@ Jawab dengan format singkat dan jelas, gunakan ${pakaiInggris ? 'bahasa INGGRIS 
   return { rekomendasi: teksJawaban }
 })
 
+// Token rahasia webhook (WEBHOOK_TOKEN di functions/.env). Tanpa ini siapa pun yang tau
+// URL-nya bisa kirim laporan palsu & ngabisin kuota Gemini.
+// Dikirim lewat URL (?token=...) karena WhatAuto cuma bisa diisi URL,
+// atau lewat header x-webhook-token kalau nanti pakai bridge lain.
+function tokenWebhookValid(req) {
+  const rahasia = process.env.WEBHOOK_TOKEN
+  // Token belum diset di server → tolak semua, jangan malah kebuka buat umum
+  if (!rahasia) return false
+  const dikirim = req.get('x-webhook-token') || req.query.token
+  if (typeof dikirim !== 'string') return false
+  const a = Buffer.from(dikirim)
+  const b = Buffer.from(rahasia)
+  // timingSafeEqual biar token gak bisa ditebak dari lama waktu respons
+  return a.length === b.length && crypto.timingSafeEqual(a, b)
+}
+
+// Pesan WA yang wajar gak sepanjang ini; sisanya dipotong biar prompt Gemini gak bengkak
+const MAKS_PANJANG_PESAN = 1000
+
 exports.whatsappWebhook = onRequest(async (req, res) => {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+  // Sengaja tanpa "reply": yang gak punya token gak usah dapet balasan apa-apa
+  if (!tokenWebhookValid(req)) {
+    console.warn('whatsappWebhook: token tidak valid, permintaan ditolak')
+    return res.status(403).json({ error: 'Forbidden' })
+  }
+
   try {
-    const { message, phone } = req.body
+    const { phone } = req.body || {}
+    const message = typeof req.body?.message === 'string'
+      ? req.body.message.trim().slice(0, MAKS_PANJANG_PESAN)
+      : ''
 
     if (!message) {
       return res.json({ reply: 'Pesan kosong. Contoh format laporan: "Lapor Cililin, longsor, kerusakan parah, sekitar 50 jiwa terdampak."' })
@@ -137,6 +169,10 @@ exports.whatsappWebhook = onRequest(async (req, res) => {
     }
 
     const lokasi = lokasiList.find((l) => l.kecamatan === hasil.kecamatan)
+    // Gemini kadang ngasih nama kecamatan di luar daftar — jangan sampai bikin error
+    if (!lokasi) {
+      return res.json({ reply: `Maaf, lokasi belum dikenali. Lokasi yang bisa dilaporkan lewat WhatsApp: ${lokasiList.map((l) => l.kecamatan).join(', ')}.` })
+    }
 
     const ref = await db.collection('titik_anomali').add({
       kecamatan: lokasi.kecamatan,
