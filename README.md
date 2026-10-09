@@ -104,12 +104,13 @@ Public map   Volunteer Dashboard
 - Sensitive fields (reporter phone number, verifier email) are split into a separate, volunteer-only `titik_privat` collection.
 - Photos are only viewable by authenticated volunteers (Storage rules), with file size and type limits.
 - Duplicate or rejected reports are hidden from the public map and statistics, but the data itself is retained for audit purposes.
+- The WhatsApp webhook requires a secret token (`?token=` or `x-webhook-token` header, compared in constant time); requests without a valid token are rejected silently.
 
 ## 🌐 Other Features
 
 - **Bilingual (ID/EN) toggle** — switches the entire interface, including AI-generated recommendations and BMKG weather descriptions, since the app is built for Indonesian users but documented here in English for international review
 - **Realtime by default** — every volunteer sees the same live data via Firestore's `onSnapshot`, no manual refresh needed
-- **Nationwide-ready location data** — every village in Java plus 869 islands, each mapped to a BMKG administrative weather code
+- **Java-wide location data** — every village in Java (24,515) plus 869 islands, each mapped to a BMKG administrative weather code; the data structure is designed to extend to the rest of Indonesia
 
 ## 🚀 Getting Started (local development)
 
@@ -118,27 +119,49 @@ Public map   Volunteer Dashboard
 git clone https://github.com/gonggongz/sar-mitigation-system.git
 cd sar-mitigation-system
 
-# 2. Install dependencies
+# 2. Install the Firebase CLI and log in
+npm install -g firebase-tools
+firebase login
+firebase use --add   # select your Firebase project
+
+# 3. Install dependencies (frontend and Cloud Functions)
 npm install
+cd functions && npm install && cd ..
 
-# 3. Set up environment variables
+# 4. Set up environment variables
 cp .env.example .env
-# fill in your Firebase project config in .env
+# fill in your Firebase web app config in .env
 
-cd functions
-cp .env.example .env
-# fill in your Gemini API key in functions/.env
-cd ..
+cp functions/.env.example functions/.env
+# fill in GEMINI_API_KEY and WEBHOOK_TOKEN in functions/.env
 
-# 4. Run the app locally
+# 5. Run the app locally
 npm run dev
 ```
 
-Deploying requires a Firebase project on the **Blaze (pay-as-you-go)** plan (needed for Cloud Functions), with Firestore, Storage, Hosting, and Authentication enabled.
+Deploying requires a Firebase project on the **Blaze (pay-as-you-go)** plan (needed for Cloud Functions), with Firestore, Storage, Hosting, and Authentication (Email/Password) enabled.
 
 ```bash
 npm run build
-firebase deploy
+firebase deploy   # hosting, functions, Firestore & Storage rules
+```
+
+### Registering a volunteer account
+
+There is no sign-up form by design — only administrators can create volunteer accounts:
+
+1. In **Firebase Console → Authentication**, add a user with email and password.
+2. Copy that user's **UID**.
+3. In **Firestore**, create a document in the `relawan` collection with the UID as the document ID (any fields, e.g. `nama`).
+
+Accounts that can log in but are not in the `relawan` collection are blocked from the dashboard, the AI recommendation function, and photo access.
+
+### Connecting WhatsApp (optional)
+
+Point your webhook bridge (e.g. WhatAuto) to the deployed function URL (printed after `firebase deploy --only functions`) with your token appended:
+
+```
+https://<region>-<project-id>.cloudfunctions.net/whatsappWebhook?token=<WEBHOOK_TOKEN>
 ```
 
 ## 🗺️ Roadmap / Future Development
@@ -147,7 +170,6 @@ This prototype currently uses **simulated signal-loss data** to demonstrate the 
 
 - Partner with telecom operators or BNPB/Kominfo to access real cell-tower (BTS) outage data
 - Integrate official BPS population data for more accurate impact estimates
-- Add a security token to the WhatsApp webhook to prevent abuse
 - Expand WhatsApp-reported locations beyond the current pilot set to full nationwide coverage
 - Offline-first support (PWA) so field reports can queue during connectivity loss
 - Marker clustering for large-scale incidents, image/voice-note support in WhatsApp reports, and BMKG response caching for resilience during high-traffic events (e.g. major earthquakes)
@@ -155,6 +177,8 @@ This prototype currently uses **simulated signal-loss data** to demonstrate the 
 ## 🙏 Acknowledgments
 
 - **BMKG** (Badan Meteorologi, Klimatologi, dan Geofisika) for the public weather API
+- **Village location data:** BPS (Statistics Indonesia) via OCHA / Humanitarian Data Exchange (HDX), licensed under [CC BY-IGO](https://creativecommons.org/licenses/by/3.0/igo/)
+- **Map tiles:** © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, [OpenTopoMap](https://opentopomap.org) (CC-BY-SA)
 - **Google Cloud** and **Hack2skill** for organizing the AI Builder Cup 2026
 - Built with the help of Claude (Anthropic) and Gemini (Google)
 
