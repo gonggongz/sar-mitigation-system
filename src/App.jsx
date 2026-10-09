@@ -170,6 +170,14 @@ function App() {
               <PanduanBencana />
             </div>
           </div>
+
+          {/* Atribusi wajib: data desa BPS lewat OCHA/HDX berlisensi CC BY-IGO */}
+          <footer className="border-t border-slate-700 pt-3 text-[11px] text-slate-500 flex flex-wrap gap-x-4 gap-y-1">
+            <span className="font-semibold text-slate-400">{t('sumber.judul')}:</span>
+            <span>{t('sumber.cuaca')}: <a href="https://data.bmkg.go.id" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-300">BMKG</a></span>
+            <span>{t('sumber.desa')}: BPS via <a href="https://data.humdata.org/dataset/cod-ab-idn" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-300">OCHA/HDX</a> (<a href="https://creativecommons.org/licenses/by/3.0/igo/" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-300">CC BY-IGO</a>)</span>
+            <span>{t('sumber.peta')}: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-300">OpenStreetMap</a> contributors, OpenTopoMap</span>
+          </footer>
         </div>
       </div>
     )

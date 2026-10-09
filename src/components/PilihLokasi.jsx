@@ -163,6 +163,7 @@ function PilihLokasi({ lokasi, onUbah }) {
               )}
             </ul>
           )}
+          <p className="mt-1 text-[10px] text-slate-500">{t('lokasi.sumberDesa')}</p>
         </div>
       )}
 

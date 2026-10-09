@@ -21,6 +21,10 @@ const id = {
   'landing.masukRelawan': '🧑‍🚒 Masuk Relawan',
   'landing.lapor': '🆘 Lapor Bencana',
   'landing.laporKet': 'Tanpa perlu akun · kamu yang menentukan lokasi kejadian',
+  'sumber.judul': 'Sumber data',
+  'sumber.cuaca': 'Cuaca',
+  'sumber.desa': 'Data desa',
+  'sumber.peta': 'Peta',
   'masyarakat.subjudul': 'Lapor kejadian bencana di sekitar kamu',
 
   // Gerbang relawan
@@ -287,6 +291,7 @@ const id = {
   'lokasi.tidakKetemu': 'Desa tidak ditemukan. Coba ejaan lain, atau ketuk langsung di peta.',
   'lokasi.banyakHasil': 'Banyak hasil serupa? Tambahkan nama kecamatan/kabupaten, mis. "sukamaju cianjur".',
   'lokasi.ketukPeta': 'Ketuk peta untuk memindahkan titik ke lokasi kejadian yang lebih tepat.',
+  'lokasi.sumberDesa': 'Data desa: BPS via OCHA/HDX (CC BY-IGO)',
   'lokasi.akurasi': ' · akurat ±{n} m',
   'lokasi.perkiraan': ' · nama desa perkiraan dari titik terdekat',
 }
@@ -307,6 +312,10 @@ const en = {
   'landing.masukRelawan': '🧑‍🚒 Volunteer login',
   'landing.lapor': '🆘 Report a Disaster',
   'landing.laporKet': 'No account needed · you choose the incident location',
+  'sumber.judul': 'Data sources',
+  'sumber.cuaca': 'Weather',
+  'sumber.desa': 'Village data',
+  'sumber.peta': 'Map',
   'masyarakat.subjudul': 'Report a disaster near you',
 
   'gerbang.subjudul': 'Volunteers & SAR team area',
@@ -548,6 +557,7 @@ const en = {
   'lokasi.tidakKetemu': 'Village not found. Try another spelling, or tap directly on the map.',
   'lokasi.banyakHasil': 'Many similar results? Add the district/regency name, e.g. "sukamaju cianjur".',
   'lokasi.ketukPeta': 'Tap the map to move the pin to the exact incident location.',
+  'lokasi.sumberDesa': 'Village data: BPS via OCHA/HDX (CC BY-IGO)',
   'lokasi.akurasi': ' · accurate to ±{n} m',
   'lokasi.perkiraan': ' · village name estimated from the nearest point',
 }
